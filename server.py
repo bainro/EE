@@ -16,7 +16,7 @@ class httpHandler(http.server.BaseHTTPRequestHandler):
             if animal_id == None:
                 return
             # Open the CSV file in append mode
-            with open(f'./{animal_id}.csv', mode='a') as f:
+            with open(f'./{animal_id}.csv', mode='a', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([time.time()])
             self.send_response(200)  # HTTP status 200 OK
