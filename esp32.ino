@@ -3,12 +3,18 @@
 const char* ssid = "D3AB8E";
 const char* password =  "4CE156WJ01BBE";
 const char builtin_LED = 2;
+const int v_div_pin = 34;
+float batt_v = 0;
+const byte PIR_pin = 2; // IR motion sensor
+String currentLine = ""; // holds incoming data from the client
 
 NetworkServer server(80);
 
 void setup() {
   Serial.begin(115200);
   pinMode(builtin_LED, OUTPUT);  // set the LED pin mode
+  pinMode(v_div_pin, INPUT); // for reading battery voltage
+  pinMode(PIR_pin, INPUT);
   delay(10);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -31,7 +37,7 @@ void loop() {
 
   if (client) {                     // if you get a client,
     Serial.println("New Client.");  // print a message out the serial port
-    String currentLine = "";        // make a String to hold incoming data from the client
+    
     while (client.connected()) {    // loop while the client's connected
       if (client.available()) {     // if there's bytes to read from the client,
         char c = client.read();     // read a byte, then
@@ -48,11 +54,11 @@ void loop() {
             client.println();
 
             // the content of the HTTP response follows the header:
-            client.print("Click <a href=\"/H\">here</a> to turn the LED on pin 2 on.<br>");
-            client.print("Click <a href=\"/L\">here</a> to turn the LED on pin 2 off.<br>");
+            client.print("Click <a href='/battery'>here</a> to check battery.<br>");
 
             // The HTTP response ends with another blank line:
             client.println();
+
             // break out of the while loop:
             break;
           } else {  // if you got a newline, then clear currentLine:
@@ -62,12 +68,33 @@ void loop() {
           currentLine += c;      // add it to the end of the currentLine
         }
 
-        // Check to see if the client request was "GET /H" or "GET /L":
-        if (currentLine.endsWith("GET /H")) {
-          digitalWrite(builtin_LED, HIGH);  // GET /H turns the LED on
-        }
-        if (currentLine.endsWith("GET /L")) {
-          digitalWrite(builtin_LED, LOW);  // GET /L turns the LED off
+        // Check to see what the client request was
+        if (currentLine.endsWith("GET /battery")) {
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-type:text/html");
+          client.println();
+
+          // read the battery voltage pin
+          batt_v = ((float)analogRead(v_div_pin)) / 4095 * 3.3;
+          // convert it to the true voltage given our voltage divider
+          batt_v = batt_v * 3.13; // extra 13% from experimental measures
+
+          // the content of the HTTP response follows the header:
+          client.print("Battery voltage is: " + String(batt_v, 2) + "V.<br>");
+          client.print("Click <a href='/battery'>here</a> to check the latest battery volatage.<br>");
+
+          bool is_motion = digitalRead(PIR_pin);
+          if (is_motion) {
+            client.println("MOTION DETECTED!");
+          }
+          else {
+            client.println("no motion detected ...");
+          }
+
+          // The HTTP response ends with another blank line:
+          client.println();
+          digitalWrite(builtin_LED, HIGH);  // turn the LED on
+          break; // don't send default HTTP response
         }
       }
     }
