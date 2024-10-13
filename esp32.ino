@@ -9,7 +9,9 @@ float batt_v = 0;
 bool is_recording = false;
 bool is_motion = false;
 uint16_t motion_cooldown = 5000; // 5 seconds
+//uint16_t sleep_cooldown = 5000; // 5 seconds
 uint32_t last_motion;
+//uint32_t last_sleep;
 String animalId = "unspecified_mouse";
 const byte PIR_pin = 2; // IR motion sensor
 String currentLine = ""; // holds incoming data from the client
@@ -19,6 +21,7 @@ NetworkServer server(80);
 void setup() {
   Serial.begin(115200);
   last_motion = millis();
+  //last_sleep = millis();
   pinMode(builtin_LED, OUTPUT);  // set the LED pin mode
   pinMode(v_div_pin, INPUT); // for reading battery voltage
   pinMode(PIR_pin, INPUT);
@@ -30,7 +33,6 @@ void setup() {
   }
 
   Serial.println("Connected to the WiFi network");
-  // Print local IP address and start web server
   Serial.println("");
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
@@ -41,19 +43,26 @@ void setup() {
 
 void loop() {
   if (is_recording) {
-    is_motion = digitalRead(PIR_pin);
-    if (is_motion) {
-      if ((millis() - last_motion) > motion_cooldown) {
-        last_motion = millis();
-        Serial.println("MOTION DETECTED!");
-        HTTPClient http;
-        String urlWithParams = "http://192.168.0.2:8080/motion?animal_id=" + animalId;
-        http.begin(urlWithParams.c_str());
-        //http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-        int response = http.GET();
-        http.end();
+    //if ((millis() - last_sleep) > sleep_cooldown) {
+    //  last_sleep = millis();
+      // go to sleep for a bit :)
+      // esp_sleep_enable_timer_wakeup(50000);
+      // esp_light_sleep_start();
+      is_motion = digitalRead(PIR_pin);
+      if (is_motion) {
+        if ((millis() - last_motion) > motion_cooldown) {
+          last_motion = millis();
+          Serial.println("MOTION DETECTED!");
+          HTTPClient http;
+          String urlWithParams = "http://192.168.0.2:8080/motion?animal_id=" + animalId;
+          //String urlWithParams = "http://192.168.1.10:8080/motion?animal_id=" + animalId;
+          http.begin(urlWithParams.c_str());
+          //http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+          int response = http.GET();
+          http.end();
+        }
       }
-    }
+    //}
   }
 
   NetworkClient client = server.accept();  // listen for incoming clients
