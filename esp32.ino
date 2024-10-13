@@ -49,7 +49,7 @@ void loop() {
         HTTPClient http;
         String urlWithParams = "http://192.168.0.2:8080/motion?animal_id=" + animalId;
         http.begin(urlWithParams.c_str());
-        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+        //http.addHeader("Content-Type", "application/x-www-form-urlencoded");
         int response = http.GET();
         http.end();
       }
@@ -141,7 +141,7 @@ void loop() {
           animalId = "";
           // the rest of the requested URL is the animal ID
           // delimited with a carriage return
-          while (c != '\r' && c != '\n') {
+          while (c != '\r' && c != '\n' && c != ' ') {
             animalId += c;
             c = client.read();
           }
