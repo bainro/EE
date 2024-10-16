@@ -30,11 +30,14 @@ uint32_t last_bot_btn; // for software debounce
 uint32_t sessionStartTime;
 uint32_t reward_start_time_top;
 uint32_t reward_start_time_bot;
-uint32_t manual_R_start_time; // Manual matlab reward. 1 var for both tracks.
+uint32_t manual_R_start_time_T;
+uint32_t manual_R_start_time_B;
 uint16_t reward_duration_top = 100; // @TODO communicate this with matlab!
 uint16_t reward_duration_bot = 100; // @TODO communicate this with matlab!
 
-bool manual_reward = false; // true means we're currently giving manual R
+bool manual_reward_top = false;
+bool manual_reward_bot = false;
+bool solenoid_status = false; // used for open/close
 // states of the state machines
 bool top_is_paused = true; // Whether the states are locked
 bool top_in_state1 = true; // init state / cooldown period
@@ -49,7 +52,7 @@ void setup() {
   // Initialize Serial Connections
   Serial.begin(115200);         //  Initialize serial connection
   Wire.begin();                 //  join i2c bus (address optional for master)
-  Serial.println("Arduino for Table #3 is running");
+  Serial.println("Arduino for Table #4 is running");
 
   // PIR motion sensor is determined is an input here.  
   pinMode(top_button, INPUT);
@@ -88,18 +91,18 @@ void loop() {
   }
 
   // check if manual reward needs to end
-  if (manual_reward) {
-    // @NOTE hacky. Assumes top duration is similar to bottom
-    // probably safe that top will always be set too.
-    // Also assumes a mouse on the other track will not
-    // be given reward during the same time since we 
-    // turn off both solenoids instead of keeping track.
-    // These assumptions simplify and speed up this main loop.
-    if ((millis() - manual_R_start_time) > reward_duration_top) {
-      manual_reward = false;
+  if (manual_reward_top) {
+    if ((millis() - manual_R_start_time_T) > reward_duration_top) {
+      manual_reward_top = false;
       digitalWrite(reward_pin_top, LOW);
+      Serial.println("[T] manual reward turned off");
+    }
+  }
+  if (manual_reward_bot) {
+    if ((millis() - reward_start_time_bot) > reward_duration_bot) {
+      manual_reward_bot = false;
       digitalWrite(reward_pin_bot, LOW);
-      Serial.println("manual reward turned off");
+      Serial.println("[B] manual reward turned off");
     }
   }
 
@@ -287,19 +290,48 @@ void decode_serial_data() {
   if (tempb == 'r') {
     while (!Serial.available()) {}
     tempb = Serial.read();
-    
-    manual_R_start_time = millis();
 
     if (tempb == 0) { // top
       digitalWrite(reward_pin_top, HIGH);
+      manual_R_start_time_T = millis();
       Serial.println("[T] arduino manual reward ack");
+      manual_reward_top = true;
     }
     else { // bottom
       digitalWrite(reward_pin_bot, HIGH);
+      manual_R_start_time_B = millis();
       Serial.println("[B] arduino manual reward ack");
+      manual_reward_bot = true;
     }
 
-    manual_reward = true;
+    return;
+  }
+
+  // respond to solenoid open and close calls
+  if (tempb == 's') {
+    while (!Serial.available()) {}
+    tempb = Serial.read();
+
+    solenoid_status = !solenoid_status;
+    if (tempb == 0) { // top
+      if (solenoid_status) {
+        Serial.println("[T] arduino solenoid opened");
+        digitalWrite(reward_pin_top, HIGH);
+      } else {
+        Serial.println("[T] arduino solenoid closed");
+        digitalWrite(reward_pin_top, LOW);
+      }
+    }
+    else { // bottom
+      if (solenoid_status) {
+        Serial.println("[B] arduino solenoid opened");
+        digitalWrite(reward_pin_bot, HIGH);
+      } else {
+        Serial.println("[B] arduino solenoid closed");
+        digitalWrite(reward_pin_bot, LOW);
+      }
+    }
+
     return;
   }
 }
