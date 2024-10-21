@@ -37,7 +37,8 @@ uint16_t reward_duration_bot = 100; // @TODO communicate this with matlab!
 
 bool manual_reward_top = false;
 bool manual_reward_bot = false;
-bool solenoid_status = false; // used for open/close
+bool solenoid_status_T = false; // used for open/close
+bool solenoid_status_B = false; // used for open/close
 // states of the state machines
 bool top_is_paused = true; // Whether the states are locked
 bool top_in_state1 = true; // init state / cooldown period
@@ -52,7 +53,7 @@ void setup() {
   // Initialize Serial Connections
   Serial.begin(115200);         //  Initialize serial connection
   Wire.begin();                 //  join i2c bus (address optional for master)
-  Serial.println("Arduino for Table #4 is running");
+  Serial.println("Arduino for Table #2 is running");
 
   // PIR motion sensor is determined is an input here.  
   pinMode(top_button, INPUT);
@@ -312,9 +313,9 @@ void decode_serial_data() {
     while (!Serial.available()) {}
     tempb = Serial.read();
 
-    solenoid_status = !solenoid_status;
     if (tempb == 0) { // top
-      if (solenoid_status) {
+      solenoid_status_T = !solenoid_status_T;
+      if (solenoid_status_T) {
         Serial.println("[T] arduino solenoid opened");
         digitalWrite(reward_pin_top, HIGH);
       } else {
@@ -323,7 +324,8 @@ void decode_serial_data() {
       }
     }
     else { // bottom
-      if (solenoid_status) {
+      solenoid_status_B = !solenoid_status_B;
+      if (solenoid_status_B) {
         Serial.println("[B] arduino solenoid opened");
         digitalWrite(reward_pin_bot, HIGH);
       } else {
