@@ -3,6 +3,10 @@ function  init_fx(app)
 rng('shuffle');
 tic;
 
+app.alarms = true;
+app.top_last_beep = -100;
+app.bot_last_beep = -100;
+
 % look for arduino nanos
 devs = fcom();
 [r,c] = size(devs);
