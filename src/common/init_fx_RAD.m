@@ -3,6 +3,8 @@ function  init_fx_RAD(app)
     rng('shuffle');
     tic;
     
+    loadStatus(app,'gui_settings.mat');
+
     % look for arduino nanos
     devs = fcom();
     [r,c] = size(devs);
@@ -36,4 +38,5 @@ function  init_fx_RAD(app)
     % start serial reads in background
     configureTerminator(app.arduino,"CR/LF");
     configureCallback(app.arduino,"terminator",@(src,evnt)read_serial_RAD(src,evnt,app))
+
 end
