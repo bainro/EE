@@ -34,6 +34,15 @@ function  init_fx_RAD(app)
     % create serial communication object on port COM
     app.arduino=serialport(comstr,115200);
     app.arduino.Timeout = 0.05;
+
+    function errFcn(e, app)
+        if contains(e.ID, 'lostConnectionState')
+            fig = uifigure;
+            uialert(fig,"The serial connection to the Arduino was lost. This app will be forced to exit. The RAD GUI must be restarted.","DISCONNECTED!");
+            app.delete();
+        end
+    end
+    app.arduino.ErrorOccurredFcn = @(e)errFcn(e, app);
     
     % start serial reads in background
     configureTerminator(app.arduino,"CR/LF");
