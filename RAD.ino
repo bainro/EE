@@ -11,7 +11,7 @@ uint32_t last_motion_5;
 uint32_t last_motion_6;
 
 // cage motion sensors pins
-const byte PIR_1 = 13;
+const byte PIR_1 = 11; // @TODO FIX WHEN GOING TO MEGA!!!
 const byte PIR_2 = 2;
 const byte PIR_3 = 3;
 const byte PIR_4 = 4;
