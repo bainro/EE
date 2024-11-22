@@ -1,14 +1,12 @@
 #include <Wire.h> 
 
-
-uint16_t motion_cooldown = 5000; // 5 sec
 bool is_motion = false;
-uint32_t last_motion_1;
-uint32_t last_motion_2;
-uint32_t last_motion_3;
-uint32_t last_motion_4;
-uint32_t last_motion_5;
-uint32_t last_motion_6;
+bool last_motion_1;
+bool last_motion_2;
+bool last_motion_3;
+bool last_motion_4;
+bool last_motion_5;
+bool last_motion_6;
 
 // cage motion sensors pins
 const byte PIR_1 = 11; // @TODO FIX WHEN GOING TO MEGA!!!
@@ -134,46 +132,49 @@ void loop() {
   // check cage #1
   is_motion = digitalRead(PIR_1);
   if (is_motion) {
-    if ((millis() - last_motion_1) > motion_cooldown) {
+    if (!last_motion_1) {
       // see if it's actually plugged in since no pulldown Rs
       if (usb_1) {
-        last_motion_1 = millis();
         Serial.println("MOTION CAGE 1");
       }
     }
   }
+  last_motion_1 = is_motion;
 
   // check cage #2
   is_motion = digitalRead(PIR_2);
   if (is_motion) {
-    if ((millis() - last_motion_2) > motion_cooldown) {
+    if (!last_motion_2) {
+      // see if it's actually plugged in since no pulldown Rs
       if (usb_2) {
-        last_motion_2 = millis();
         Serial.println("MOTION CAGE 2");
       }
     }
   }
+  last_motion_2 = is_motion;
 
   // check cage #3
   is_motion = digitalRead(PIR_3);
   if (is_motion) {
-    if ((millis() - last_motion_3) > motion_cooldown) {
+    if (!last_motion_3) {
+      // see if it's actually plugged in since no pulldown Rs
       if (usb_3) {
-        last_motion_3 = millis();
         Serial.println("MOTION CAGE 3");
       }
     }
   }
+  last_motion_3 = is_motion;
 
   // check cage #4
   is_motion = digitalRead(PIR_4);
   if (is_motion) {
-    if ((millis() - last_motion_4) > motion_cooldown) {
+    if (!last_motion_4) {
+      // see if it's actually plugged in since no pulldown Rs
       if (usb_4) {
-        last_motion_4 = millis();
         Serial.println("MOTION CAGE 4");
       }
     }
   }
+  last_motion_4 = is_motion;
 
 }
