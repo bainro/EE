@@ -13,7 +13,7 @@ const byte PIR_1 = 11; // @TODO FIX WHEN GOING TO MEGA!!!
 const byte PIR_2 = 2;
 const byte PIR_3 = 3;
 const byte PIR_4 = 4;
-const byte PIR_5 = 5;
+const byte PIR_5 = 13;
 const byte PIR_6 = 6;
 
 // how often to check if USBs plugged in or not
@@ -26,12 +26,16 @@ bool usb_1 = false;
 bool usb_2 = false;
 bool usb_3 = false;
 bool usb_4 = false;
+bool usb_5 = false;
+bool usb_6 = false;
 
 // cage USB status PINs
 const byte USB_1 = 7;
 const byte USB_2 = 8;
 const byte USB_3 = 9;
 const byte USB_4 = 10;
+const byte USB_5 = 5;
+const byte USB_6 = 12;
 
 void setup() {
   // Initialize Serial Connections
@@ -55,15 +59,25 @@ void setup() {
   pinMode(USB_2, INPUT);
   pinMode(USB_3, INPUT);
   pinMode(USB_4, INPUT);
+  pinMode(USB_5, INPUT);
+  pinMode(USB_6, INPUT);
 
   // figure out which cages are plugged in at startup
   usb_1 = digitalRead(USB_1);
   usb_2 = digitalRead(USB_2);
   usb_3 = digitalRead(USB_3);
   usb_4 = digitalRead(USB_4);
+  usb_5 = digitalRead(USB_5);
+  usb_6 = digitalRead(USB_6);
   last_usb_check = millis();
 
   // matlab assumes they're unplugged at startup
+  if (usb_6) {
+    Serial.println("PLUGGED IN CAGE 6");
+  }
+  if (usb_5) {
+    Serial.println("PLUGGED IN CAGE 5");
+  }
   if (usb_4) {
     Serial.println("PLUGGED IN CAGE 4");
   }
@@ -127,6 +141,28 @@ void loop() {
         Serial.println("UNPLUGGED CAGE 4");
       }
     }
+
+    temp_usb = usb_5;
+    usb_5 = digitalRead(USB_5);
+    if (temp_usb != usb_5) {
+      if (usb_5) {
+        Serial.println("PLUGGED IN CAGE 5");
+      }
+      else {
+        Serial.println("UNPLUGGED CAGE 5");
+      }
+    }
+
+    temp_usb = usb_6;
+    usb_6 = digitalRead(USB_6);
+    if (temp_usb != usb_6) {
+      if (usb_6) {
+        Serial.println("PLUGGED IN CAGE 6");
+      }
+      else {
+        Serial.println("UNPLUGGED CAGE 6");
+      }
+    }
   }
 
   // check cage #1
@@ -176,5 +212,29 @@ void loop() {
     }
   }
   last_motion_4 = is_motion;
+
+  // check cage #5
+  is_motion = digitalRead(PIR_5);
+  if (is_motion) {
+    if (!last_motion_5) {
+      // see if it's actually plugged in since no pulldown Rs
+      if (usb_5) {
+        Serial.println("MOTION CAGE 5");
+      }
+    }
+  }
+  last_motion_5 = is_motion;
+
+  // check cage #6
+  is_motion = digitalRead(PIR_6);
+  if (is_motion) {
+    if (!last_motion_6) {
+      // see if it's actually plugged in since no pulldown Rs
+      if (usb_6) {
+        Serial.println("MOTION CAGE 6");
+      }
+    }
+  }
+  last_motion_6 = is_motion;  
 
 }
