@@ -1,14 +1,15 @@
 % MATLAB Script to load CSV, bin events into 15-minute intervals, and count occurrences
 
 figure;
-animals = ["Aurelion", "Sion", "Vex", "Lulu", "WUKONG"]
+animals = ["cubone", "pikachu", "arceus", "rayquaza"];
 
 for l=1:length(animals)
 
     animal = animals(l);
 
     % Load the CSV file
-    activity_file = 'C:\Users\MCN Lab User\Desktop\EE\' + animal + '\activity.csv';
+    activity_file = '/home/rbain/git/EE/RAD motion data/' + animal + '/activity.csv';
+    % activity_file = 'C:\Users\MCN Lab User\Desktop\EE\' + animal + '\activity.csv';
     data = readtable(activity_file);
     % Convert the DateTime column to MATLAB datetime format if it's not already
     data.(1) = datetime(data.(1));
@@ -28,11 +29,53 @@ for l=1:length(animals)
     eventCounts = histcounts(data.(1), binEdges);
 
     % filter out low counts due to cage being unplugged
-    usb_file = 'C:\Users\MCN Lab User\Desktop\EE\' + animal + '\usb_connection.csv'; 
+    usb_file = '/home/rbain/git/EE/RAD motion data/' + animal + '/usb_connection.csv';
+    % usb_file = 'C:\Users\MCN Lab User\Desktop\EE\' + animal + '\usb_connection.csv'; 
     usb_data = readtable(usb_file);
     usb_data.(2) = datetime(usb_data.(2));
+    
+    % presumably these edge cases are produced by the prints
+    % being missed from being so early after serial connection? 
+    
     % check since we make this assumption below
-    assert(strcmp(usb_data.(1)(1), 'plugged'), 'First entry expected to be "plugged"');
+    if ~strcmp(usb_data.(1)(1), 'plugged')
+        % grab the first moment of activity and add it as necessary event
+        usb_data = [table("plugged", data.(1)(1)); usb_data];
+    end
+    
+    new_usb_data = usb_data;
+    last_was_unplugged = false;
+    for i=2:1:length(usb_data.(1))
+        curr_is_unplugged = strcmp(usb_data.(1)(i), 'unplugged');
+        if curr_is_unplugged
+            if last_was_unplugged
+                % i.e. two 'unplugged' events in a row
+                % Add a "plugged in" event between using the activity data.
+                % Find the first activity after the 1st 'unplugged' event,
+                for o=1:1:length(data.(1))
+                    if data.(1)(o) > usb_data.(2)(i-1)
+                        break 
+                    end
+                end
+                new_usb_data = [usb_data(1:i-1,:); table("plugged", data.(1)(o)); usb_data(i:end, :)];
+            end
+        else
+            if ~last_was_unplugged
+                % i.e. two 'plugged' events in a row
+                % Add an uplugged in between using the activity data.
+                % find the last activity before the 2nd 'plugged' event?
+                for o=1:1:length(data.(1))
+                    if data.(1)(o) > usb_data.(2)(i)
+                        break 
+                    end
+                end
+                new_usb_data = [usb_data(1:i-1,:); table("unplugged", data.(1)(o)); usb_data(i:end, :)];
+            end
+        end
+        last_was_unplugged = curr_is_unplugged;
+    end
+    usb_data = new_usb_data;
+    
     % this logic will introduce some, but acceptable error
     j = 1;
     for i=2:2:length(usb_data.(2))
@@ -88,24 +131,20 @@ for l=1:length(animals)
     k = 5;
     smoothedCs = movmean(eventCounts, k);
 
-    % it is not necessarily in this order...
-    %days_of_week = {'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'};
-    num_days = binEdges(1:60*24/n_min_bins);
-
     num_days = length(eventCounts) / (60*24/n_min_bins);
+    total_days_shown = num_days;
+    %{
     if mod(num_days, 7) == 0
         total_days_shown = num_days;
     else
         % helps pad our weeks with blank graphs
         total_days_shown = 7*floor(num_days/7) + 7;
     end
+    %}
 
     for i = 1:total_days_shown
-        if i > 3
-            continue;
-        end
 
-        subplot(length(animals), 3, i+(l-1)*3);
+        subplot(length(animals), num_days, i+(l-1)*num_days);
         disp("MODIFIED FOR ONE-OFF TASK! NOT GENERAL PROGRAM ANYMORE!!")
         
         if i <= num_days
