@@ -1,11 +1,7 @@
 % MATLAB Script to load CSV, bin events into 15-minute intervals, and count occurrences
 
-% @TODO compare Prof's weekdays vs weekends
-% @TODO how long does the drug affect Prof? How long until he's back to his
-% non-drugged days (e.g. weekends) and the rest of the girl's activity?
 % @TODO Don't include X bins immediately following dosing to infer NaNs
-% @TODO Subplots comparing animals?
-animal = "lulu";
+animal = "wukong";
 
 % Load the CSV file
 activity_file = '/home/rbain/git/EE/RAD motion data/' + animal + '/activity.csv';
@@ -74,6 +70,40 @@ for i=2:1:length(usb_data.(1))
 end
 usb_data = new_usb_data;
 
+% this logic will introduce some, but acceptable error
+j = 1;
+for i=2:2:length(usb_data.(2))
+    if i == length(usb_data.(2))
+        continue % no activity can be logged when unplugged
+    end
+    unplug_t = usb_data.(2)(i);
+    plug_t = usb_data.(2)(i+1);
+    unplug_dur = minutes(plug_t - unplug_t);
+    % loop thru binEdges until we find one further in time
+    while unplug_t > binEdges(j)
+        j = j + 1;
+    end
+    % throw away the counts for these bins
+    unplug_dur = unplug_dur + n_min_bins - minutes(binEdges(j)-unplug_t);
+    endBinJ = j-1+floor(unplug_dur/n_min_bins);
+    if endBinJ <= length(eventCounts)
+        eventCounts(j-1:endBinJ) = NaN;
+    end
+end
+
+% @TODO OMIT! This is hardcoded for the LOL group of mice!!
+% @TODO OMIT! This is hardcoded for the LOL group of mice!!
+% Don't look at data before they were training and 
+%{
+cutoff_dt = datetime(2024, 12, 14);
+for i=1:length(eventCounts)
+    if binEdges(i) < cutoff_dt
+        eventCounts(i) = NaN;
+        disp("HMM")
+    end
+end
+%}
+
 % Loop to generate datetimes 15 minutes earlier
 startDatetime = binEdges(1);
 datetimesArray = startDatetime;
@@ -103,6 +133,13 @@ if n_end_pad > 1
     eventNaNs = NaN(1, n_end_pad-1);
     eventCounts = [eventCounts eventNaNs];
     binEdges = [binEdges datetimesArray(2:n_end_pad).']; 
+end
+
+% omit weekdays for the dosed mice (index might be off by 1)
+for i=1:length(eventCounts)
+    if ~isweekend(binEdges(i))
+        eventCounts(i) = NaN;
+    end
 end
 
 % replace NaNs with mean value of other days at that time
@@ -138,7 +175,7 @@ plot(binEdges(1:60*24/n_min_bins), smoothedCs, '-', 'LineWidth', 2);
 %plot(binEdges(2:end), smoothedCs, '-o', 'LineWidth', 2, 'MarkerSize', 6);
 xlabel('Time (' + string(n_min_bins) + 'minute bins)');
 ylabel('PIR Activity Detections');
-title('Time of Day Versus Activity for ' + animal);
+title('Time of Weekend Day Versus Activity for ' + animal);
 %grid on; 
 xtickformat('HH:mm:ss');
 % remove specific date from x-axis
