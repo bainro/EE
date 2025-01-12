@@ -1,7 +1,7 @@
 % MATLAB Script to load CSV, bin events into 15-minute intervals, and count occurrences
 
 % @TODO Don't include X bins immediately following dosing to infer NaNs
-animal = "wukong";
+animal = "prof";
 
 % Load the CSV file
 activity_file = '/home/rbain/git/EE/RAD motion data/' + animal + '/activity.csv';
@@ -91,15 +91,19 @@ for i=2:2:length(usb_data.(2))
     end
 end
 
-% @TODO OMIT! This is hardcoded for the LOL group of mice!!
-% @TODO OMIT! This is hardcoded for the LOL group of mice!!
-% Don't look at data before they were training and 
-%{
-cutoff_dt = datetime(2024, 12, 14);
+% @TODO OMIT! This is hardcoded
+disp("@TODO OMIT! This is hardcoded");
+% Only include a certain range of dates
+%%{
+start_dt = datetime(2024, 12, 14);
+end_dt = datetime(2025, 1, 5);
+%end_dt = datetime(2025, 1, 15);
 for i=1:length(eventCounts)
-    if binEdges(i) < cutoff_dt
+    if binEdges(i) < start_dt
         eventCounts(i) = NaN;
-        disp("HMM")
+    end
+    if binEdges(i) > end_dt
+        eventCounts(i) = NaN;
     end
 end
 %}
@@ -135,6 +139,47 @@ if n_end_pad > 1
     binEdges = [binEdges datetimesArray(2:n_end_pad).']; 
 end
 
+saved_counts = eventCounts;
+
+% omit weekend days for the dosed mice (index might be off by 1)
+for i=1:length(eventCounts)
+    if isweekend(binEdges(i))
+        eventCounts(i) = NaN;
+    end
+end
+
+% replace NaNs with mean value of other days at that time
+byDayCounts = reshape(eventCounts, 60*24/n_min_bins, []).';
+m = mean(byDayCounts, 'omitnan');
+[r_i, c_i] = find(isnan(byDayCounts));
+for i=1:length(r_i)
+    byDayCounts(r_i(i), c_i(i))
+    byDayCounts(r_i(i), c_i(i)) = m(1, c_i(i));
+    m(1, c_i(i))
+end
+% flatten back into a row vector
+byDayCounts = reshape(byDayCounts.', 1, []);
+
+% Display the results in the CMD window
+disp('Time Bins (' + string(n_min_bins) + '-minute intervals) and Event Counts:');
+for i = 1:length(eventCounts)
+    fprintf('%s - %s: %d events\n', ...
+        datestr(binEdges(i)), datestr(binEdges(i+1)), round(byDayCounts(i)));
+end
+
+dayAvgCounts = mean(reshape(byDayCounts, 60*24/n_min_bins, []).');
+
+k = 3;
+% dynamically pad based on k to sim wrap around
+wrappedCounts = [dayAvgCounts(end-k+1:end) dayAvgCounts dayAvgCounts(1:k)];
+smoothedCs = movmean(wrappedCounts, k);
+smoothedCs = smoothedCs(k+1:end-k);
+
+figure;
+plot(binEdges(1:60*24/n_min_bins), smoothedCs, '-', 'LineWidth', 6);
+
+eventCounts = saved_counts;
+
 % omit weekdays for the dosed mice (index might be off by 1)
 for i=1:length(eventCounts)
     if ~isweekend(binEdges(i))
@@ -163,20 +208,24 @@ end
 
 dayAvgCounts = mean(reshape(byDayCounts, 60*24/n_min_bins, []).');
 
-
-k = 5;
+k = 3;
 % dynamically pad based on k to sim wrap around
 wrappedCounts = [dayAvgCounts(end-k+1:end) dayAvgCounts dayAvgCounts(1:k)];
 smoothedCs = movmean(wrappedCounts, k);
 smoothedCs = smoothedCs(k+1:end-k);
+hold on;
+plot(binEdges(1:60*24/n_min_bins), smoothedCs, '-', 'LineWidth', 6);
 
-figure;
-plot(binEdges(1:60*24/n_min_bins), smoothedCs, '-', 'LineWidth', 2);
-%plot(binEdges(2:end), smoothedCs, '-o', 'LineWidth', 2, 'MarkerSize', 6);
 xlabel('Time (' + string(n_min_bins) + 'minute bins)');
 ylabel('PIR Activity Detections');
-title('Time of Weekend Day Versus Activity for ' + animal);
+animal = char(animal);
+animal(1) = upper(animal(1));
+animal = string(animal);
+title('Time of Day Versus Activity for ' + animal);
 %grid on; 
 xtickformat('HH:mm:ss');
 % remove specific date from x-axis
 xticklabels(char(xticks, 'hh:mm a'));
+legend({'weekdays','weekends'},'Location','northwest');
+fontsize(24, "points");
+hold off;

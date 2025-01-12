@@ -3,7 +3,7 @@
 drug_animals = ["aurelion", "wukong"];
 control_animals = ["lulu", "sion"];
 
-animal = "wukong";
+animal = "sion";
 
 % amount of time to visualize after dose administration
 vis_dur = 360; % mins
@@ -20,9 +20,9 @@ data.(1) = datetime(data.(1));
 % code has not been optimized to account for DST yet.
 assert(range(isdst(data.(1))) == 0, 'daylight savings time change detected!');
 
-dose_file = '/home/rbain/git/EE/RAD motion data/' + animal + '/doses.csv';
-%disp("@TODO hack! remove!!!");
-%dose_file = '/home/rbain/git/EE/RAD motion data/mush/doses.csv';
+%dose_file = '/home/rbain/git/EE/RAD motion data/' + animal + '/doses.csv';
+disp("@TODO hack! remove!!!");
+dose_file = '/home/rbain/git/EE/RAD motion data/aurelion/doses.csv';
 dose_data = readtable(dose_file);
 dose_data.(1) = datetime(dose_data.(1));
 
