@@ -3,7 +3,9 @@ function  init_fx_RAD(app)
     rng('shuffle');
     tic;
     
-    loadStatus(app,'gui_settings.mat');
+    load_RAD(app,'RAD_settings.mat');
+    % updates cage_1's name after the load above
+    change_cage_pub(app, []);
 
     % look for arduino nanos
     devs = fcom();
