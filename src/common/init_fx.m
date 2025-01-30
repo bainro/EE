@@ -1,7 +1,7 @@
 function  init_fx(app)
 
 rng('shuffle');
-tic;
+%tic;
 
 app.alarms = true;
 app.top_last_beep = -100;
